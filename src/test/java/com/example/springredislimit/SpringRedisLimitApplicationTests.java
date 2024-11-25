@@ -23,7 +23,7 @@ class SpringRedisLimitApplicationTests {
     @Test
     public void testRedisLimiter() throws InterruptedException{
         for(int i = 1; i <= 10000; i++){
-            boolean b = rateLimiterService.allowRequest("2",10000, Duration.ofSeconds(60));
+            boolean b = rateLimiterService.allowRequest("2",5, Duration.ofSeconds(30));
             System.out.println(String.format("第 %s 次请求，是否允许执行： %s", i, b));
 
         }

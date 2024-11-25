@@ -8,6 +8,7 @@ import org.springframework.stereotype.Service;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 
 @Service
 public class RateLimiterService {
@@ -20,6 +21,7 @@ public class RateLimiterService {
         this.redisTemplate = redisTemplate;
     }
 
+    //使用Redis 的ZSET 有序集合来实现滑动窗口限流，实际应用都应使用lua脚本来保证操作的原子性
     public boolean allowRequest(String userId, int maxRequests, Duration timeWindow) {
         String key = LIMITER_KEY_PREFIX + userId;
         ZSetOperations<String, String> zSetOps = redisTemplate.opsForZSet();
@@ -44,5 +46,15 @@ public class RateLimiterService {
 
         // 判断请求数量是否超过限制
         return requestTimes.size() <=maxRequests;
+    }
+
+    //使用Redis的 INCR 和 EXPIRE 实现固定窗口的计数与限流
+    public boolean isAllowed(String userId, String api, int maxRequests, int intervalSeconds) {
+        String key = "rate_limit:" + userId + ":" + api;
+        Long count = redisTemplate.opsForValue().increment(key);
+        if (count == 1) {
+            redisTemplate.expire(key, intervalSeconds, TimeUnit.SECONDS);
+        }
+        return count <= maxRequests;
     }
 }
